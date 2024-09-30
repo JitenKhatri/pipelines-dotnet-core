@@ -13,5 +13,38 @@ variables:
   buildConfiguration: 'Release'
 
 steps:
-- script: dotnet build --configuration $(buildConfiguration)
+- task: UseDotNet@2
+  displayName: Install .NET Core SDK
+  inputs: 
+   version: '8.x'
+   performMultiLevelLookup: true
+   includePreviewVersions: true # required for preview versions
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    feedsToUse: 'select'
+    vstsFeed: 'my-vsts-feed' # A series of numbers and letters
+
+# - task: DotNetCoreCLI@2
+#   displayName: Restore
+#   inputs: 
+#    command: restore
+#    projects: '**/*.csproj'
+#    feedsToUse: config
+#    nugetConfigPath: Nuget.config # relative to the root of the repository
+#    externalFeedCredentials: <Name of the Nuget Service connection>
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '**/*.csproj'
+    feedsToUse: 'select'
+
+
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    arguments: '--configuration $(buildConfiguration)'
   displayName: 'dotnet build $(buildConfiguration)'
