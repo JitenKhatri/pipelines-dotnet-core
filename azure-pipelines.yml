@@ -46,5 +46,94 @@ steps:
 - task: DotNetCoreCLI@2
   inputs:
     command: 'build'
+    projects: '**/*.csproj'
     arguments: '--configuration $(buildConfiguration)'
   displayName: 'dotnet build $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'custom'
+    custom: 'tool'
+    arguments: 'install -g dotnetsay'
+
+- task: CmdLine@2
+  inputs:
+    script: 'dotnetsay'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'
+
+# dotnet core build using script
+- script: dotnet build -- configuration $(buildConfiguration)
+  displayName: 'dotnet build $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  inputs: 
+    command: test
+    projects: '**/*Tests*/*.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+
+# after tests have run
+- script: dotnet test <test-project> --logger trx
+- task: PublishTestResults@2
+  condition: succeededOrFailed()
+  inputs: 
+    testRunner: VSTest
+    testResultsFiles: '**/*.trx'
+
+# collecting code coverage
+- task: DotNetCoreCLI@2
+  inputs: 
+    command: test
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code Coverage"'
+
+
+# Collect code coverage metrics with Coverlet
+- task: UseDotNet@2
+  inputs: 
+    version: '8.x'
+    includePreviewVersions: true # Required for preview versions
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build'
+  inputs: 
+    command: 'build'
+    configuration: $(buildConfiguration)
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test'
+  inputs: 
+    command: 'test'
+    arguments: '--configuration $(buildConfiguration) --collect:"XPlat Code Coverage" --DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura'
+    publishTestResults: true
+    projects: 'MyTestLibrary'
+
+
+- task: PublishCodeCoverageResults@2
+  displayName: 'Publish Code Coverage Report'
+  inputs:
+    summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
+
+# after restore build test and test coverage lets publish
+
+- task: DotNetCoreCLI@2
+  inputs: 
+    command: publish
+    publishWebProjects: True
+    arguments: '--configuration $(BuildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    zipAfterPublish: True
+
+# this code takes all the files in $(Build.ArtifactStagingDirectory) and uploads them as an artifact of your build.
+- task: PublishBuildArtifacts@1
+  inputs: 
+   targetPath: '$(Build.ArtifactStagingDirectory)'
+   artifactName: 'myWebsite'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'publish'
+    publishWebProjects: true
+    arguments: '-- configuration $(BuildConfiguration) --output (Build.ArtifactsStagingDirectory)'
