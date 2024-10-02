@@ -6,8 +6,16 @@
 trigger:
 - master
 
-pool:
-  vmImage: windows-latest
+# build across multiple platforms
+strategy:
+   matrix:
+     linux:
+        imageName: "ubuntu-latest"
+     mac: 
+        imageName: "macOS-latest"
+     windows: 
+        imageName: "windows-latest"
+   maxParallel: 3
 
 variables:
   buildConfiguration: 'Release'
@@ -24,7 +32,7 @@ steps:
   inputs:
     command: 'restore'
     feedsToUse: 'select'
-    vstsFeed: 'my-vsts-feed' # A series of numbers and letters
+    vstsFeed: 'my-new-public-feed' # A series of numbers and letters
 
 # - task: DotNetCoreCLI@2
 #   displayName: Restore
